@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuthCheck } from '@/hooks/use-auth-check';
+import { useToast } from '@/hooks/use-toast';
 import {
   Select,
   SelectContent,
@@ -16,6 +18,15 @@ import {
 import { Bell, Shield, Palette, LogOut } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { user, loading } = useAuthCheck();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+  });
+
   const [notifications, setNotifications] = useState({
     emailAlerts: true,
     slackAlerts: false,
@@ -26,6 +37,57 @@ export default function SettingsPage() {
   });
 
   const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || '',
+        email: user.email || '',
+      });
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      // In a real app, you would send this to an API
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    try {
+      setIsSaving(true);
+      // In a real app, you would send this to an API
+      toast({
+        title: 'Success',
+        description: 'Notification settings updated',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-10">Loading settings...</div>;
+  }
 
   return (
     <div className="space-y-10 max-w-3xl">
@@ -50,7 +112,8 @@ export default function SettingsPage() {
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                defaultValue="John Doe"
+                value={profile.name}
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 className="bg-secondary/50 border-border/50"
               />
             </div>
@@ -59,25 +122,19 @@ export default function SettingsPage() {
               <Input
                 id="email"
                 type="email"
-                defaultValue="john@example.com"
-                className="bg-secondary/50 border-border/50"
+                value={profile.email}
+                disabled
+                className="bg-secondary/50 border-border/50 cursor-not-allowed opacity-60"
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="company">Company Name</Label>
-            <Input
-              id="company"
-              defaultValue="Acme Corp"
-              className="bg-secondary/50 border-border/50"
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <Button className="bg-accent hover:bg-accent/90">Save Changes</Button>
-            <Button variant="outline">Change Password</Button>
-          </div>
+          <Button 
+            onClick={handleSaveProfile}
+            disabled={isSaving}
+            className="bg-accent hover:bg-accent/90"
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
         </CardContent>
       </Card>
 
@@ -86,96 +143,98 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Notifications
+            Notification Preferences
           </CardTitle>
-          <CardDescription>Choose how you want to be notified</CardDescription>
+          <CardDescription>Manage how you receive alerts and notifications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div>
-            <h3 className="font-semibold text-foreground mb-4">Alert Channels</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="email"
-                  checked={notifications.emailAlerts}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, emailAlerts: checked as boolean })
-                  }
-                />
-                <Label htmlFor="email" className="font-normal cursor-pointer">
-                  Email Alerts
-                </Label>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 hover:bg-secondary/30 transition-colors">
+              <div>
+                <p className="font-medium text-foreground">Email Alerts</p>
+                <p className="text-sm text-muted-foreground">Receive alerts via email</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="slack"
-                  checked={notifications.slackAlerts}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, slackAlerts: checked as boolean })
-                  }
-                />
-                <Label htmlFor="slack" className="font-normal cursor-pointer">
-                  Slack Notifications
-                </Label>
+              <Checkbox
+                checked={notifications.emailAlerts}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, emailAlerts: checked as boolean })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 hover:bg-secondary/30 transition-colors">
+              <div>
+                <p className="font-medium text-foreground">Slack Integration</p>
+                <p className="text-sm text-muted-foreground">Send alerts to Slack workspace</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="sms"
-                  checked={notifications.smsAlerts}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, smsAlerts: checked as boolean })
-                  }
-                />
-                <Label htmlFor="sms" className="font-normal cursor-pointer">
-                  SMS Alerts (Critical Only)
-                </Label>
+              <Checkbox
+                checked={notifications.slackAlerts}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, slackAlerts: checked as boolean })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 hover:bg-secondary/30 transition-colors">
+              <div>
+                <p className="font-medium text-foreground">SMS Alerts</p>
+                <p className="text-sm text-muted-foreground">Get critical alerts via SMS</p>
               </div>
+              <Checkbox
+                checked={notifications.smsAlerts}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, smsAlerts: checked as boolean })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 hover:bg-secondary/30 transition-colors">
+              <div>
+                <p className="font-medium text-foreground">Weekly Reports</p>
+                <p className="text-sm text-muted-foreground">Receive weekly summary reports</p>
+              </div>
+              <Checkbox
+                checked={notifications.weeklyReport}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, weeklyReport: checked as boolean })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 hover:bg-secondary/30 transition-colors">
+              <div>
+                <p className="font-medium text-foreground">Incident Notifications</p>
+                <p className="text-sm text-muted-foreground">Alert on incidents and downtime</p>
+              </div>
+              <Checkbox
+                checked={notifications.incident}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, incident: checked as boolean })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-lg border border-border/40 hover:bg-secondary/30 transition-colors">
+              <div>
+                <p className="font-medium text-foreground">Maintenance Alerts</p>
+                <p className="text-sm text-muted-foreground">Notify about scheduled maintenance</p>
+              </div>
+              <Checkbox
+                checked={notifications.maintenance}
+                onCheckedChange={(checked) =>
+                  setNotifications({ ...notifications, maintenance: checked as boolean })
+                }
+              />
             </div>
           </div>
 
-          <div className="border-t border-border/30 pt-6">
-            <h3 className="font-semibold text-foreground mb-4">Notification Types</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="incident"
-                  checked={notifications.incident}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, incident: checked as boolean })
-                  }
-                />
-                <Label htmlFor="incident" className="font-normal cursor-pointer">
-                  Incident Alerts
-                </Label>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="maintenance"
-                  checked={notifications.maintenance}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, maintenance: checked as boolean })
-                  }
-                />
-                <Label htmlFor="maintenance" className="font-normal cursor-pointer">
-                  Maintenance Notifications
-                </Label>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="weekly"
-                  checked={notifications.weeklyReport}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, weeklyReport: checked as boolean })
-                  }
-                />
-                <Label htmlFor="weekly" className="font-normal cursor-pointer">
-                  Weekly Reports
-                </Label>
-              </div>
-            </div>
-          </div>
-
-          <Button className="bg-accent hover:bg-accent/90">Save Preferences</Button>
+          <Button 
+            onClick={handleSaveNotifications}
+            disabled={isSaving}
+            className="bg-accent hover:bg-accent/90"
+          >
+            {isSaving ? 'Saving...' : 'Save Preferences'}
+          </Button>
         </CardContent>
       </Card>
 
@@ -184,39 +243,46 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="h-5 w-5" />
-            Display
+            Appearance
           </CardTitle>
-          <CardDescription>Customize your appearance</CardDescription>
+          <CardDescription>Customize how the application looks</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="theme">Theme</Label>
             <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger id="theme" className="bg-secondary/50 border-border/50">
+              <SelectTrigger className="bg-secondary/50 border-border/50">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System Default</SelectItem>
+                <SelectItem value="dark">Dark Mode</SelectItem>
+                <SelectItem value="light">Light Mode</SelectItem>
+                <SelectItem value="auto">Auto (System)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-2">
+              Currently using: <span className="font-medium capitalize">{theme} mode</span>
+            </p>
           </div>
-          <Button className="bg-accent hover:bg-accent/90">Save Preferences</Button>
         </CardContent>
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-destructive/50 bg-destructive/5">
+      <Card className="border-destructive/30 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <LogOut className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
           <CardDescription>Irreversible actions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-foreground">
-            Once you delete your account, there is no going back. Please be certain.
+          <Button variant="outline" className="border-destructive/30 hover:bg-destructive/10 text-destructive w-full">
+            Delete Account
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Permanently delete your account and all associated data. This action cannot be undone.
           </p>
-          <Button variant="destructive">Delete Account</Button>
         </CardContent>
       </Card>
     </div>

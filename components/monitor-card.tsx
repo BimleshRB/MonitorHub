@@ -1,14 +1,17 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MoreVertical, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 interface MonitorCardProps {
+  id?: string;
   name: string;
   url: string;
   status: 'up' | 'down' | 'degraded';
@@ -16,9 +19,12 @@ interface MonitorCardProps {
   uptime: number;
   lastChecked: string;
   interval: string;
+  onDeleted?: () => void;
+  onUpdated?: () => void;
 }
 
 export function MonitorCard({
+  id,
   name,
   url,
   status,
@@ -26,7 +32,12 @@ export function MonitorCard({
   uptime,
   lastChecked,
   interval,
+  onDeleted,
+  onUpdated,
 }: MonitorCardProps) {
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const statusConfig = {
     up: {
       icon: CheckCircle2,
@@ -51,6 +62,41 @@ export function MonitorCard({
   const config = statusConfig[status];
   const Icon = config.icon;
 
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/monitors/${id}`, { method: 'DELETE' });
+      
+      if (!res.ok) {
+        toast({
+          title: 'Error',
+          description: 'Failed to delete monitor',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Monitor deleted successfully',
+      });
+
+      onDeleted?.();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete monitor',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Card className="border-border/60 hover:border-primary/40 transition-colors">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-6">
@@ -65,14 +111,24 @@ export function MonitorCard({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Button variant="ghost" size="icon" className="h-9 w-9" disabled={isDeleting}>
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Edit Monitor</DropdownMenuItem>
-            <DropdownMenuItem>View History</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Delete Monitor</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.location.href = `/dashboard/monitors?edit=${id}`}>
+              Edit Monitor
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => window.location.href = `/dashboard/monitors?history=${id}`}>
+              View History
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Monitor'}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { useAuthCheck } from '@/hooks/use-auth-check';
+import { useToast } from '@/hooks/use-toast';
 import {
   Select,
   SelectContent,
@@ -19,86 +21,63 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const usersData = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'USER',
-    status: 'active',
-    joinDate: '2024-01-20',
-    monitors: 12,
-    lastActive: '2 hours ago',
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'USER',
-    status: 'active',
-    joinDate: '2024-01-13',
-    monitors: 8,
-    lastActive: '30 minutes ago',
-  },
-  {
-    id: 3,
-    name: 'Bob Wilson',
-    email: 'bob@example.com',
-    role: 'USER',
-    status: 'inactive',
-    joinDate: '2024-01-02',
-    monitors: 5,
-    lastActive: '1 week ago',
-  },
-  {
-    id: 4,
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    role: 'USER',
-    status: 'active',
-    joinDate: '2023-11-15',
-    monitors: 15,
-    lastActive: '1 hour ago',
-  },
-  {
-    id: 5,
-    name: 'Charlie Brown',
-    email: 'charlie@example.com',
-    role: 'USER',
-    status: 'active',
-    joinDate: '2023-12-20',
-    monitors: 6,
-    lastActive: '4 hours ago',
-  },
-  {
-    id: 6,
-    name: 'Diana Prince',
-    email: 'diana@example.com',
-    role: 'USER',
-    status: 'suspended',
-    joinDate: '2023-10-05',
-    monitors: 3,
-    lastActive: '2 months ago',
-  },
-];
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'USER' | 'ADMIN';
+  createdAt: string;
+}
 
 export default function AdminUsersPage() {
+  const { user, loading: authLoading } = useAuthCheck();
+  const { toast } = useToast();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
 
-  const filteredUsers = usersData.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/admin/users', { cache: 'no-store' });
+      if (!res.ok) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load users',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const data = await res.json();
+      setUsers(data.users || []);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load users',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+  useEffect(() => {
+    if (!authLoading && user?.role === 'ADMIN') {
+      loadUsers();
+    }
+  }, [authLoading, user]);
 
-    return matchesSearch && matchesStatus;
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
   });
 
-  const activeCount = usersData.filter((u) => u.status === 'active').length;
-  const inactiveCount = usersData.filter((u) => u.status === 'inactive').length;
-  const suspendedCount = usersData.filter((u) => u.status === 'suspended').length;
+  if (!user || user.role !== 'ADMIN') {
+    return <div className="text-center py-10 text-destructive">Access denied. Admin only.</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -107,14 +86,14 @@ export default function AdminUsersPage() {
         <h1 className="text-4xl font-bold text-foreground tracking-tight">Manage Users</h1>
         <p className="text-lg text-muted-foreground font-light">View and manage all user accounts</p>
       </div>
-      <Button className="bg-accent hover:bg-accent/90">Invite User</Button>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border/50">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Active Users</p>
-              <p className="text-3xl font-bold text-green-600">{activeCount}</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Users</p>
+              <p className="text-3xl font-bold text-blue-600">{users.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -122,8 +101,8 @@ export default function AdminUsersPage() {
         <Card className="border-border/50">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Inactive Users</p>
-              <p className="text-3xl font-bold text-yellow-600">{inactiveCount}</p>
+              <p className="text-sm font-medium text-muted-foreground">Admins</p>
+              <p className="text-3xl font-bold text-purple-600">{users.filter(u => u.role === 'ADMIN').length}</p>
             </div>
           </CardContent>
         </Card>
@@ -131,8 +110,8 @@ export default function AdminUsersPage() {
         <Card className="border-border/50">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Suspended</p>
-              <p className="text-3xl font-bold text-red-600">{suspendedCount}</p>
+              <p className="text-sm font-medium text-muted-foreground">Regular Users</p>
+              <p className="text-3xl font-bold text-green-600">{users.filter(u => u.role === 'USER').length}</p>
             </div>
           </CardContent>
         </Card>
@@ -144,7 +123,7 @@ export default function AdminUsersPage() {
           <div className="space-y-4">
             <div>
               <CardTitle>All Users</CardTitle>
-              <CardDescription>Total: {usersData.length} users</CardDescription>
+              <CardDescription>Total: {users.length} users</CardDescription>
             </div>
             <div className="flex gap-4 flex-col md:flex-row md:items-center">
               <div className="relative flex-1">
@@ -156,15 +135,14 @@ export default function AdminUsersPage() {
                   className="pl-10 bg-secondary/50 border-border/50"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-full md:w-40 bg-secondary/50 border-border/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="USER">User</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -177,55 +155,38 @@ export default function AdminUsersPage() {
                 <tr className="border-b border-border/50">
                   <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Name</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Email</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Status</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Monitors</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Last Active</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Role</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Joined</th>
                   <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      Loading users...
+                    </td>
+                  </tr>
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((u) => (
+                    <tr key={u._id} className="border-b border-border/30 hover:bg-secondary/30 transition-colors">
                       <td className="py-4 px-4">
-                        <p className="font-medium text-foreground">{user.name}</p>
+                        <p className="font-medium text-foreground">{u.name}</p>
                       </td>
                       <td className="py-4 px-4">
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">{u.email}</p>
                       </td>
                       <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`h-2 w-2 rounded-full ${
-                              user.status === 'active'
-                                ? 'bg-green-600'
-                                : user.status === 'inactive'
-                                  ? 'bg-yellow-600'
-                                  : 'bg-red-600'
-                            }`}
-                          />
-                          <span
-                            className={`text-xs font-semibold uppercase ${
-                              user.status === 'active'
-                                ? 'text-green-600'
-                                : user.status === 'inactive'
-                                  ? 'text-yellow-600'
-                                  : 'text-red-600'
-                            }`}
-                          >
-                            {user.status}
-                          </span>
-                        </div>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                          u.role === 'ADMIN'
+                            ? 'bg-purple-600/10 text-purple-600'
+                            : 'bg-blue-600/10 text-blue-600'
+                        }`}>
+                          {u.role}
+                        </span>
                       </td>
                       <td className="py-4 px-4">
-                        <p className="text-sm font-semibold text-foreground">{user.monitors}</p>
-                      </td>
-                      <td className="py-4 px-4">
-                        <p className="text-sm text-muted-foreground">{user.lastActive}</p>
-                      </td>
-                      <td className="py-4 px-4">
-                        <p className="text-sm text-muted-foreground">{user.joinDate}</p>
+                        <p className="text-sm text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</p>
                       </td>
                       <td className="py-4 px-4 text-right">
                         <DropdownMenu>
@@ -238,9 +199,6 @@ export default function AdminUsersPage() {
                             <DropdownMenuItem>View Account</DropdownMenuItem>
                             <DropdownMenuItem>Edit User</DropdownMenuItem>
                             <DropdownMenuItem>Reset Password</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              {user.status === 'suspended' ? 'Unsuspend' : 'Suspend'} User
-                            </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">Delete User</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -249,7 +207,7 @@ export default function AdminUsersPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       No users found
                     </td>
                   </tr>

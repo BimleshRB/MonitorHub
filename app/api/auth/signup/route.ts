@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { hashPassword, signAccessToken } from '@/lib/auth'
 import connectToDatabase from '@/lib/db'
+import { sendWelcomeEmail } from '@/lib/resend'
 import User from '@/models/User'
 
 export async function POST(request: NextRequest) {
@@ -23,6 +24,11 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password)
     const user = await User.create({ name, email: email.toLowerCase(), passwordHash, role: 'USER' })
+
+    // Send welcome email asynchronously (don't wait for it)
+    sendWelcomeEmail({ to: user.email, name: user.name }).catch(err => {
+      console.error('Failed to send welcome email:', err)
+    })
 
     const token = signAccessToken({ userId: user._id.toString(), email: user.email, role: user.role, name: user.name })
     const res = NextResponse.json(
