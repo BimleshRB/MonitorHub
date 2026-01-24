@@ -73,7 +73,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-secondary/10 flex items-center justify-center p-4">
       {/* Back to Home Link */}
       <Link href="/" className="absolute top-4 left-4 text-accent hover:text-accent/80 transition-colors text-sm font-medium">
         ← Back to Home
@@ -89,21 +89,21 @@ export default function SignupPage() {
             <p className="text-lg text-muted-foreground">Start monitoring your websites today</p>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-accent mt-1 shrink-0" />
                 <div>
                   <p className="font-semibold text-foreground">No credit card required</p>
                   <p className="text-sm text-muted-foreground">Get started for free instantly</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-accent mt-1 shrink-0" />
                 <div>
                   <p className="font-semibold text-foreground">Unlimited monitors</p>
                   <p className="text-sm text-muted-foreground">Monitor as many sites as you need</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-accent mt-1 flex-shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-accent mt-1 shrink-0" />
                 <div>
                   <p className="font-semibold text-foreground">Enterprise support</p>
                   <p className="text-sm text-muted-foreground">Dedicated support for your needs</p>

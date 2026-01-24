@@ -50,7 +50,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-background via-background to-secondary/10 flex items-center justify-center p-4">
       {/* Back to Home Link */}
       <Link href="/" className="absolute top-4 left-4 text-accent hover:text-accent/80 transition-colors text-sm font-medium">
         ← Back to Home

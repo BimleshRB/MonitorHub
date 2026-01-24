@@ -44,7 +44,7 @@ export function DashboardHeader({ title = 'Dashboard', showSearch = true }: Dash
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/40 bg-card/80 backdrop-blur-md supports-[backdrop-filter]:bg-card/60">
+    <header className="sticky top-0 z-30 border-b border-border/40 bg-card/80 backdrop-blur-md supports-backdrop-filter:bg-card/60">
       <div className="flex h-20 items-center justify-between px-8 gap-6">
         <div className="flex-1 max-w-xl hidden md:block">
           {showSearch && (

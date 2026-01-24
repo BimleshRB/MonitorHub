@@ -172,7 +172,7 @@ export function DashboardSidebar() {
                   : 'text-sidebar-foreground hover:bg-sidebar-accent'
               )}
             >
-              <Icon className="h-5 w-5 flex-shrink-0" />
+              <Icon className="h-5 w-5 shrink-0" />
               <span className="text-sm font-medium">{item.label}</span>
             </Link>
           );
