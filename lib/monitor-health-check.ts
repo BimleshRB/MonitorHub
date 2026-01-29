@@ -4,8 +4,6 @@
  * timeout management, and performance metrics.
  */
 
-import { AbortController } from 'abort-controller'
-
 export interface HealthCheckResult {
   isUp: boolean
   statusCode?: number

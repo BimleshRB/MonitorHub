@@ -84,5 +84,3 @@ export async function disconnectFromDatabase() {
 }
 
 export default connectToDatabase
-
-export default connectToDatabase

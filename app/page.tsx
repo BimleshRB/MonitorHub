@@ -212,7 +212,8 @@ export default function LandingPage() {
                   <span className="text-emerald-500 font-semibold">Live</span>
                 </div>
               </div>
-              <div className="space-y-3">{[
+              <div className="space-y-3">
+                {[
                   { name: 'storefront.app', status: 'Healthy', latency: '86ms', icon: Activity, color: 'emerald' },
                   { name: 'payments.api', status: 'Degraded', latency: '420ms', icon: AlertTriangle, color: 'amber' },
                   { name: 'edge.gateway', status: 'Healthy', latency: '63ms', icon: Cpu, color: 'emerald' },

@@ -196,7 +196,3 @@ export function clearAuthCookies(response: NextResponse): void {
     maxAge: 0,
   })
 }
-  }
-
-  return payload
-}
