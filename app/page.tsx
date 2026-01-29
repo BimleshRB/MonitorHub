@@ -87,8 +87,88 @@ const testimonials = [
 ]
 
 export default function LandingPage() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://monitor-hub-nine.vercel.app'
+  
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'MonitorHub',
+    applicationCategory: 'BusinessApplication',
+    applicationSubCategory: 'Website Monitoring',
+    operatingSystem: 'Web Browser',
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'USD',
+      lowPrice: '0',
+      highPrice: '29',
+      offerCount: '2',
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '127',
+      bestRating: '5',
+      worstRating: '1',
+    },
+    description: 'Advanced website monitoring platform with AI incident narratives, global signal mesh probes, and real-time latency heatmaps for production reliability.',
+    featureList: [
+      'Signal Mesh Monitoring',
+      'AI Incident Narratives',
+      'Latency Heatmaps',
+      'Runbook Automation',
+      'Audit-Ready Logs',
+      'Performance DNA Tracking',
+      'Real-time Alerts',
+      'Multi-region Probes',
+      'SSL Certificate Monitoring',
+      'API Health Monitoring',
+    ],
+    screenshot: `${baseUrl}/og-image.png`,
+    url: baseUrl,
+  }
+
+  const organizationData = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'MonitorHub',
+    url: baseUrl,
+    logo: `${baseUrl}/android-chrome-512x512.png`,
+    description: 'AI-powered website monitoring and uptime tracking platform',
+    sameAs: [
+      'https://twitter.com/monitorhub',
+      'https://github.com/monitorhub',
+    ],
+  }
+
+  const breadcrumbData = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: baseUrl,
+      },
+    ],
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData) }}
+      />
+
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-24 right-0 h-80 w-80 rounded-full bg-primary/20 blur-[120px]" />
         <div className="absolute top-1/2 -left-32 h-72 w-72 rounded-full bg-secondary/40 blur-[140px]" />
