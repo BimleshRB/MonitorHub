@@ -1,6 +1,18 @@
+/**
+ * MongoDB Connection Pool Manager
+ * Maintains single connection for the entire app lifecycle
+ */
+
 import mongoose from 'mongoose'
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/monitor-hub'
+const MONGODB_URI = process.env.MONGODB_URI
+
+// Validate required env vars
+if (!MONGODB_URI) {
+  throw new Error(
+    'MONGODB_URI is required but not set in environment variables'
+  )
+}
 
 interface Cached {
   conn: typeof mongoose | null
@@ -20,6 +32,10 @@ if (!globalWithMongoose._mongooseCache) {
   globalWithMongoose._mongooseCache = cached
 }
 
+/**
+ * Connect to MongoDB with automatic retry
+ * Uses connection pooling to minimize resource usage
+ */
 export async function connectToDatabase() {
   if (cached.conn) {
     return cached.conn
@@ -28,13 +44,20 @@ export async function connectToDatabase() {
   if (!cached.promise) {
     const options: mongoose.ConnectOptions = {
       bufferCommands: false,
+      maxPoolSize: 10,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 5000,
     }
 
     cached.promise = mongoose
-      .connect(MONGODB_URI, options)
+      .connect(MONGODB_URI!, options)
+      .then(() => {
+        console.log('MongoDB connected successfully')
+        return mongoose
+      })
       .catch((err) => {
         console.error('MongoDB connection failed:', err.message)
-        console.warn('Using fallback: some features may not work without MongoDB')
+        cached.promise = null
         throw err
       })
   }
@@ -48,5 +71,18 @@ export async function connectToDatabase() {
 
   return cached.conn
 }
+
+/**
+ * Disconnect from MongoDB (for graceful shutdown)
+ */
+export async function disconnectFromDatabase() {
+  if (cached.conn) {
+    await mongoose.disconnect()
+    cached.conn = null
+    cached.promise = null
+  }
+}
+
+export default connectToDatabase
 
 export default connectToDatabase

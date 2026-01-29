@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuthCheck } from '@/hooks/use-auth-check';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 import {
   Select,
   SelectContent,
@@ -15,12 +16,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Bell, Shield, Palette, LogOut } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user, loading } = useAuthCheck();
   const { toast } = useToast();
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   const [profile, setProfile] = useState({
     name: '',
@@ -44,21 +57,47 @@ export default function SettingsPage() {
         name: user.name || '',
         email: user.email || '',
       });
+      loadNotifications();
     }
   }, [user]);
+
+  const loadNotifications = async () => {
+    try {
+      setIsLoadingNotifications(true);
+      const res = await fetch('/api/auth/notifications', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.preferences || notifications);
+      }
+    } catch (error) {
+      console.error('Failed to load notification preferences', error);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
-      // In a real app, you would send this to an API
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profile.name }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update profile');
+      }
+
       toast({
         title: 'Success',
         description: 'Profile updated successfully',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to update profile',
+        description: error.message || 'Failed to update profile',
         variant: 'destructive',
       });
     } finally {
@@ -69,15 +108,54 @@ export default function SettingsPage() {
   const handleSaveNotifications = async () => {
     try {
       setIsSaving(true);
-      // In a real app, you would send this to an API
+      const res = await fetch('/api/auth/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notifications),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update settings');
+      }
+
       toast({
         title: 'Success',
         description: 'Notification settings updated',
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error',
-        description: 'Failed to update settings',
+        description: error.message || 'Failed to update settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsSaving(true);
+      const res = await fetch('/api/auth/account', { method: 'DELETE' });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete account');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Account deleted. Redirecting to login...',
+      });
+
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete account',
         variant: 'destructive',
       });
     } finally {
@@ -277,9 +355,34 @@ export default function SettingsPage() {
           <CardDescription>Irreversible actions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button variant="outline" className="border-destructive/30 hover:bg-destructive/10 text-destructive w-full">
-            Delete Account
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="border-destructive/30 hover:bg-destructive/10 text-destructive w-full">
+                Delete Account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete your account and all associated monitors, incidents, and data. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-sm text-destructive mb-4">
+                ⚠️ All monitors will stop checking immediately. Your data will be permanently erased.
+              </div>
+              <div className="flex gap-3">
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  disabled={isSaving}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  {isSaving ? 'Deleting...' : 'Delete Account'}
+                </AlertDialogAction>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
           <p className="text-xs text-muted-foreground">
             Permanently delete your account and all associated data. This action cannot be undone.
           </p>
